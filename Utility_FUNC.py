@@ -1,10 +1,10 @@
 import requests,threading,json,urllib.parse,time
-from requests.auth import HTTPBasicAuth
 from SM_client import connect_socket
 from app import mqtt
 from FTP_client import download_and_publish_pic
 from configurations import (ROBOT_ID,BASE_TOPIC,SYNCH_URL)
 
+#Mqtt commands mappings
 CMD=dict([
             ("open-socket",200),
             ("send-pic",199),
@@ -13,12 +13,11 @@ CMD=dict([
         ])
 
 # register robot to ZDMP-DAC Component
-def register_device(URL,credentials,ID,name):
+def register_device(URL,ID,name):
     # need to set some guard condition to avoid re-registration of device
     # each device registared against a unique external ID
-    req= requests.get(url=f'{URL}/deviceInfo?externalId={ID}',
-                        auth=HTTPBasicAuth(credentials[0],credentials[1])
-                        )
+    # Cumulocity credentials are not required anymore within ZDMP network
+    req= requests.get(url=f'{URL}/deviceInfo?externalId={ID}')
     if req.status_code == 200:
         
         print('[X-UF] Device is already Registered. Device details are:')
@@ -26,9 +25,7 @@ def register_device(URL,credentials,ID,name):
         #pp(req.json())
     else:
         print('[X-UF] Registering the device....')
-        req_R= requests.post(url=f'{URL}/registerDevice?externalId={ID}&name={name}&type=c8y_Serial',
-                                auth=HTTPBasicAuth(credentials[0],credentials[1])
-                                )
+        req_R= requests.post(url=f'{URL}/registerDevice?externalId={ID}&name={name}&type=c8y_Serial')
         print(f'[X-UF] Http Status Code: {req_R.status_code}')
         # setting souece ID of device
         print(f'[X-HU] ID From DAQ: {req_R.json().get("id")}')
@@ -64,9 +61,7 @@ def process_CMD(cmd,URL_ORC,mqtt,SYNCH_URL):
             print(f'[X-UF] {req.text}')
             threading.Timer(0.5, download_and_publish_pic,
                         args=(mqtt,)).start()
-            # threading.Thread(target=download_and_publish_pic,args=(mqtt,),
-            #              daemon = True).start()
-            #return
+
         elif CMD.get(cmd) == 197:
 
             req= requests.get(f'{URL_ORC}',params=payload)
@@ -112,7 +107,7 @@ def sub_or_Unsubscribe_DataSource(ASYNCH_URL,ROBOT_ID,subs=False):
         else:
             print(f'Unsubscrption Status: {req.status_code} {req.reason}')
 
-
+#SYNCHRONOUSLY sending measurements on custom endpoint
 def send_Measurements(JSON_DATA):
     for k, v in JSON_DATA.items():
         # print(k,v)
@@ -128,6 +123,7 @@ def send_Measurements(JSON_DATA):
                             json={k: v})
         # print('[X-UF]',req.url)
         print('[X-UF]',req.status_code,req.reason)
+
 
 #publish positional data to MsgBus
 def pub_POS(JSON_Data):
