@@ -1,0 +1,88 @@
+PROGRAM z_Orchstrate
+----------------------------------------------------
+-- Creation date: 2021.11.03
+-- Created by: ME
+----------------------------------------------------
+-- Version: V1
+----------------------------------------------------
+-- Function: Will orchestrate KAREL/TP/MACRO as per middleware app request
+----------------------------------------------------
+-- Last modified: 2021.11.03
+-- Last modified by: ME                             
+----------------------------------------------------
+
+%NOLOCKGROUP
+%COMMENT = 'zOrchestartor'
+%NOABORT=ERROR+COMMAND
+%NOPAUSE=ERROR+COMMAND+TPENABLE
+%ALPHABETIZE
+%ENVIRONMENT MULTI
+%ENVIRONMENT REGOPE
+%INCLUDE KLEVKEYS
+%INCLUDE KLEVKMSK
+%INCLUDE KLEVCCDF
+%INCLUDE KLIOUOP
+%INCLUDE KLIOTYPS
+
+CONST
+--Task orchestration IDs 
+    strt_SM_Srvr = 200
+    Snap_Req = 199 
+    New_zRokiPOS = 198
+    close_Conn = 197
+    SUCCESS = 0
+VAR
+    HTTP_res_var : FILE --HTTP Response File name
+    HTTP_Res: STRING[20] 
+    CMD: STRING[20]
+    prog_name: STRING[20]
+    trig_CMD: INTEGER--STRING[20]
+    status: INTEGER
+
+----------------------------------------------------
+-- BEGIN zORCHESTRATE                             
+----------------------------------------------------
+
+BEGIN
+    -- clear the TPERROR screen
+	--FORCE_SPMENU(TP_PANEL,SPI_TPUSER,1)
+	WRITE(CHR(137),CHR(128))
+	WRITE TPERROR(CHR(128))
+    WRITE('[X-O] Waiting for HTTP Req...',CR)
+        --set file for HTTP response
+    IF UNINIT(HTTP_Res) THEN
+        HTTP_Res='TD:RESPONSE.HTM'
+        WRITE ('[X-O] INSIDE',CR)
+    ENDIF
+
+       
+    OPEN FILE HTTP_res_var ('RW', HTTP_Res)
+    WRITE HTTP_res_var ('[X-O] Openign File...',CR) 
+    --WRITE HTTP_res_var ('[X-O] File Status: ',CR)
+    
+
+    CNV_STR_INT(CMD,trig_CMD)
+    WRITE HTTP_res_var ('[X-O] trig_CMD Operation:',trig_CMD,CR) 
+    SELECT trig_CMD OF
+        
+        CASE (strt_SM_Srvr):
+            SET_INT_REG(strt_SM_Srvr, 1, status) --BG-logic for SM server   
+            WRITE HTTP_res_var ('[X-O] strt_SM_Srvr Operation is SUCCESSFULL',CR)   
+        CASE (Snap_Req):
+            SET_INT_REG(Snap_Req, 1, status)--BG-logic for SNAP work space
+            WRITE HTTP_res_var ('[X-O] Snap_Req Operation is SUCCESSFULL',CR)
+        CASE (New_zRokiPOS):
+            SET_INT_REG(New_zRokiPOS, 1, status) --BG-logic for new incomming zRoki-POS
+            WRITE HTTP_res_var ('[X-O] New_zRokiPOS Operation is SUCCESSFULL',CR)
+        CASE (close_Conn):
+            SET_INT_REG(close_Conn, 1, status) --close current Socket Connection zRoki-POS
+            WRITE HTTP_res_var ('[X-O] close_Conn Operation is SUCCESSFULL',CR)
+        
+        ELSE:
+            WRITE HTTP_res_var ('[X-O] In side ELSE...',CR)
+    ENDSELECT
+
+    WRITE HTTP_res_var ('[X-O] Closing File...',CR)
+    CLOSE FILE HTTP_res_var 
+
+END z_Orchstrate
