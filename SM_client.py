@@ -50,7 +50,11 @@ def connect_socket(SYNCH_URL):
                         #
                         # # sending measurements to ZDMP-DAQ using
                         # #custom Fragment endpoint
-                        threading.Timer(0.1, Utility_FUNC.send_Measurements,
+                        # threading.Timer(0.1, Utility_FUNC.send_Measurements,
+                        #                 args=(JSON_DATA,)
+                        #                 ).start()
+                        #directly to Msg Bus
+                        threading.Timer(0.1, Utility_FUNC.pub_POS,
                                         args=(JSON_DATA,)
                                         ).start()
 
