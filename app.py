@@ -1,5 +1,5 @@
-import threading, time, requests
-from flask import Flask, request
+import threading
+from flask import Flask
 from flask_mqtt import Mqtt
 import configurations as CONFIG
 import Utility_FUNC
@@ -95,9 +95,11 @@ if __name__ == '__main__':
         Register robot to ZDMP-DAQ component. It is one time API call and can be
         done using any REST-client like Postman etc. 
     """
-    # threading.Timer(1, Utility_FUNC.register_device,
-    #                 args=(ADMIN_URL,ROBOT_ID,ROBOT_NAME)
-    #                 ).start()
+    threading.Timer(1, Utility_FUNC.register_device,
+                    args=(CONFIG.ADMIN_URL,
+                          CONFIG.ROBOT_ID,
+                          CONFIG.ROBOT_NAME)
+                    ).start()
 
     """
         This API call allows a data source to publish it data to
