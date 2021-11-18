@@ -1,6 +1,7 @@
-import requests,threading,json,urllib.parse,time,multiprocessing
+import requests,threading,json,urllib.parse,time
 from requests.auth import HTTPBasicAuth
 from SM_client import connect_socket
+from app import mqtt
 from FTP_client import download_and_publish_pic
 from configurations import (ROBOT_ID,BASE_TOPIC,SYNCH_URL)
 
@@ -127,3 +128,13 @@ def send_Measurements(JSON_DATA):
                             json={k: v})
         # print('[X-UF]',req.url)
         print('[X-UF]',req.status_code,req.reason)
+
+#publish positional data to MsgBus
+def pub_POS(JSON_Data):
+    #frame data
+    mqtt.publish('LR-Mate/active-frames/Cam_frame',json.dumps(JSON_Data.get("camera_frame")))
+    mqtt.publish('LR-Mate/active-frames/Uframe',json.dumps(JSON_Data.get("uframe_Data")))
+    mqtt.publish('LR-Mate/active-frames/Utool',json.dumps(JSON_Data.get("utool_Data")))
+    #positional data
+    mqtt.publish('LR-Mate/Home-POS',json.dumps(JSON_Data.get("Home_POS")))
+    mqtt.publish('LR-Mate/Current_POS',json.dumps(JSON_Data.get("Current_POS")))
