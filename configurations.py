@@ -33,8 +33,8 @@ SYNCH_URL = f'http://192.168.100.100:30027'
 
 # ZDMP-Cumulocity IoT tenant credentials
 domain = "https://zdmp-da.eu-latest.cumulocity.com"
-# TenantID = "t59849255/mahboob.elahi@tuni.fi"
-# passward = "mahboobelahi93"
+TenantID = "t59849255/mahboob.elahi@tuni.fi"
+passward = "mahboobelahi93"
 
 ##############################MQTT-Settings###########################################
 Conn_ALIVE = 5
