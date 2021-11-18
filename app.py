@@ -71,15 +71,11 @@ def handle_mqtt_message(client, userdata, message):
     print(f'[X-M] {data}')
     if "CMD" in data.get("topic", "Not a valid topic"):
         threading.Thread(target=Utility_FUNC.process_CMD,
-                         args=(data.get("payload"),
-                               CONFIG.ORCHESTRATOR_URL,
-                               mqtt, CONFIG.SYNCH_URL),
+                         args=(data.get("payload"),),
                          daemon=True).start()
     else:
         threading.Thread(target=Utility_FUNC.update_POS,
-                         args=(data.get("payload"),
-                               CONFIG.UPDATE_POS_REG,
-                               CONFIG.ORCHESTRATOR_URL),
+                         args=(data.get("payload"),),
                          daemon=True).start()
 
 #Middleware Routs

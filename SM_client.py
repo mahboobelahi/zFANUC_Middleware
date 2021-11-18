@@ -5,8 +5,8 @@ import socket,re
 
 import Utility_FUNC
 from configurations import ( socket_PORT,
-                            socket_ServerIP
-                            )
+                            socket_ServerIP,
+                            SYNCH_URL)
 
 """
     It is local host because roboguide is running on PC
@@ -15,7 +15,7 @@ from configurations import ( socket_PORT,
 """
 JSON_DATA={}
 
-def connect_socket(SYNCH_URL):
+def connect_socket():
     """
     starts socket communication with robot and sends robot's data to DAQ component
     :param SYNCH_URL: ZDMP-DAQ synchronous API

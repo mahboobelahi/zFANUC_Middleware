@@ -1,11 +1,12 @@
 # Anonymous FTP login
 from ftplib import FTP
 from configurations import FTP_ServerIP
+from app import mqtt
 """
     Currently Image data is directly published on ZDMP service and message bus 
 """
 
-def download_and_publish_pic(mqtt):
+def download_and_publish_pic():
 
 
     VIS_LOG_BASE_DIR = 'ud1:/vision/logs/'

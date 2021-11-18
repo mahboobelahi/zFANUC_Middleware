@@ -2,7 +2,10 @@ import requests,threading,json,urllib.parse,time
 from SM_client import connect_socket
 from app import mqtt
 from FTP_client import download_and_publish_pic
-from configurations import (ROBOT_ID,BASE_TOPIC,SYNCH_URL)
+from configurations import (ROBOT_ID,BASE_TOPIC,
+                            ORCHESTRATOR_URL,
+                            UPDATE_POS_REG,
+                            SYNCH_URL)
 
 #Mqtt commands mappings
 CMD=dict([
@@ -42,34 +45,33 @@ def register_device(URL,ID,name):
 
 #process commands
 
-def process_CMD(cmd,URL_ORC,mqtt,SYNCH_URL):
+def process_CMD(cmd):
     if cmd in CMD:
         payload = {"CMD":CMD.get(cmd)}
         if CMD.get(cmd) == 200:
             # run Socket Messing Server 
-            req= requests.get(f'{URL_ORC}',params=payload)
+            req= requests.get(f'{ORCHESTRATOR_URL}',params=payload)
             
             print(f'[X-UF] Status Code: {req.status_code}, CMD: {CMD.get(cmd)}')
             print(f'[X-UF] {req.text}')
-            threading.Thread(target=connect_socket,args=(SYNCH_URL,),
+            threading.Thread(target=connect_socket,
                          daemon = True).start()
             return
         elif CMD.get(cmd) == 199:
             # download current Workspace picture and publish to zRoki
-            req= requests.get(f'{URL_ORC}',params=payload)
+            req= requests.get(f'{ORCHESTRATOR_URL}',params=payload)
             print(f'[X-UF] Status Code: {req.status_code}, CMD: {CMD.get(cmd)}')
             print(f'[X-UF] {req.text}')
-            threading.Timer(0.5, download_and_publish_pic,
-                        args=(mqtt,)).start()
+            threading.Timer(0.5, download_and_publish_pic).start()
 
         elif CMD.get(cmd) == 197:
 
-            req= requests.get(f'{URL_ORC}',params=payload)
+            req= requests.get(f'{ORCHESTRATOR_URL}',params=payload)
     else:
         print("[X-UF] CMD not Understand....")
 
 #update robot position
-def update_POS(POS,URL,URL_ORC):
+def update_POS(POS):
     #[float(val) for val in json.loads(POS).values()]
     id= 100
     (XX,YY,ZZ,WW,PP,RR) = ([float(val) for val in json.loads(POS).values()])
@@ -78,10 +80,10 @@ def update_POS(POS,URL,URL_ORC):
                     ("WW",WW),("PP",PP),("RR",RR)
                     ])
     
-    req= requests.get(f'{URL}',params=payload)
+    req= requests.get(f'{UPDATE_POS_REG}',params=payload)
     print(f'[X-UH] {req.url}')
     time.sleep(0.1)
-    req= requests.get(f'{URL_ORC}',params={"CMD":198})
+    req= requests.get(f'{ORCHESTRATOR_URL}',params={"CMD":198})
     print(f'[X-UH] {req.url}')
     
 # ASYNC-Data:
