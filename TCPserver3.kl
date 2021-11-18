@@ -1,0 +1,241 @@
+PROGRAM z_TCPserver3
+----------------------------------------------------
+-- CReation date: 2021.11.01
+-- CReated by: ME
+----------------------------------------------------
+-- Version: V1
+----------------------------------------------------
+-- Function: 
+----------------------------------------------------
+-- Last modified: 2021.11.01
+-- Last modified by: ME                             
+----------------------------------------------------
+%NOLOCKGROUP
+%COMMENT = 'RUN by Middleware '
+%ALPHABETIZE
+%STACKSIZE = 4000
+%NOPAUSE=ERROR+COMMAND+TPENABLE
+--%NOBUSYLAMP
+%ENVIRONMENT  STRNG
+%ENVIRONMENT UIF
+%ENVIRONMENT REGOPE
+%ENVIRONMENT SYSDEF
+%ENVIRONMENT MEMO
+%ENVIRONMENT KCLOP
+%ENVIRONMENT BYNAM
+%ENVIRONMENT FDEV
+%ENVIRONMENT FLBT
+%INCLUDE KLEVKEYS
+%INCLUDE KLEVKMSK
+%INCLUDE KLEVCCDF
+%INCLUDE KLIOUOP
+%INCLUDE KLIOTYPS
+--%DEFGROUP
+----------------------------------------------------
+CONST
+    SUCCESS = 0 --success constatnt
+    group_no = 1
+    ROBOT_Config= 'NUT'
+    Home_POS = 100
+    SM_Flag = 200
+    close_Con = 197
+
+VAR
+        file_var : FILE -- handls File I/O operation  	
+		int_val,fileIO : INTEGER -- shows STATUS of File operation 
+		real_flag: BOOLEAN
+        real_val,curr_X,curr_Y,curr_Z,curr_W,curr_P,curr_R: REAL
+        STATUS,pSTATUS : INTEGER -- shiws STATUS for other operations		
+		btyeAvailabl : INTEGER -- shows remanining bytes in read buffer
+        data_type, int_value, conv_type, open_id, ufram_no, utool_no, entry, i: INTEGER
+        lpos,Current_POS,User_FRM,Tool_FRM,Cam_FRM : XYZWPREXT
+        uframe_str, utool_str: STRING[32]       -- String used to pull the frame positions from the system varibles.
+        from_prog: STRING[32]                   -- TP program name to be copied FROM
+        con: CONFIG
+        ufram_no_str, utool_no_str : STRING[2]  -- Used to get the frame varible
+        uframe, camframe,utool : POSITION                -- Current frame and tool of the point being converted
+----------------------------------------------------
+-- BEGIN TCPserver-3                             
+----------------------------------------------------
+BEGIN
+    --Clear and home user screen.
+	WRITE(CHR(128))
+	WRITE(CHR(137))
+	-- clear the TPERROR screen
+	WRITE TPERROR(CHR(128))
+
+    --BG Logic Flag
+    --SET_INT_REG(SM_Flag, 0, STATUS)
+    WRITE ('[X-TCP] R[200] = ',STATUS,CR)
+    --TCP-Socket Server initialization
+    -- Set up S3 server tag
+    -- setting file with read ahead attribute rather than Interactive mode
+    -- dismount previously opened/used Server file
+
+    DISMOUNT_DEV('S3:',STATUS)
+    WRITE ('[X-TCP1] Dis-Mount STATUS = ',STATUS,CR)
+    MOUNT_DEV('S3:',STATUS)
+    WRITE ('[X-TCP2] Mount STATUS = ',STATUS,CR)
+    SET_FILE_ATR(file_var,ATR_READAHD)--ATR_READAHD,ATR_IA,ATR_EOL,ATR_UF
+
+    --SET THE SERVER PORT BEFORE DOING A CONNECT
+	SET_VAR(btyeAvailabl, '*SYSTEM*', '$HOSTS_CFG[3].$SERVER_PORT', 1162, STATUS)
+    -- are VARs  set?
+    IF STATUS =  SUCCESS THEN
+        -- Connect to server tag
+        WRITE ('[X-TCP3] Connecting ...',CR)
+        MSG_CONNECT ('S3:',STATUS)
+        WRITE ('[X-TCP4] Connect STATUS = ',STATUS,CR)
+        IF STATUS<>  SUCCESS THEN
+            --closing Server
+            WRITE ('[X-TCP5] Dis-Connecting...',CR)
+            WRITE ('[X-TCP6] Dis-Connect: ',STATUS,CR)
+            MSG_DISCO('S3:',STATUS)
+            WRITE ('[X-TCP7] Connecting...',CR)
+            --if client disconnected then control jumps to that lable
+            MSG_CONNECT('S3:',STATUS)--blocking statement
+            WRITE ('[X-TCP8] Connect STATUS = ',STATUS,CR)
+        ENDIF
+    ENDIF
+    -- If connected to client open file and
+    -- start sending data
+    IF STATUS =  SUCCESS THEN
+        -- OPEN S3:
+        WRITE ('[X-TCP9] Opening File...',CR)
+        OPEN FILE file_var ('RW','S3:')
+        fileIO = IO_STATUS(file_var)
+        WRITE('[X-TCP10] File_IO_STATUS=',fileIO,CR)
+        --is open file a success
+        IF fileIO = SUCCESS THEN
+            WRITE('[X-TCP11]',fileIO,CR)
+            --send_it::
+            --extract U/T frame data
+            OPEN_TPE('ZSNDPOSDATA', TPE_RWACC, TPE_RDREJ, open_id, pSTATUS)
+            IF pSTATUS = SUCCESS THEN
+                WRITE('[X-TCP12] ',open_id,CR)
+                GET_POS_FRM(open_id, 100, group_no, ufram_no, utool_no, STATUS)
+                --WRITE file_var(ufram_no, utool_no,CR)
+                --get the uframe data
+                CNV_INT_STR(ufram_no, 1, 0, ufram_no_str)
+                uframe_str='$MNUFRAME[1,'+ufram_no_str+']'
+                -- WRITE file_var('uframe_str: ')
+                -- WRITE file_var(uframe_str ,CR)
+                GET_VAR(entry, '*SYSTEM*', uframe_str, uframe, STATUS)
+                --get camera Frame
+                GET_VAR(entry, '*SYSTEM*', '$MNUFRAME[1,9]', camframe, STATUS)
+                WRITE('[X-TCP122] ',STATUS,CR)
+                --set UFRAME of current point
+                --positional variables in a TP program can be teached
+                --with different UFRAMS
+                --next line set the correct UFRAM before conversion
+                SET_VAR(entry,'*SYSTEM*','$GROUP[1].$UFRAME',uframe,STATUS)
+                --get the utool
+                CNV_INT_STR(utool_no, 1, 0, utool_no_str)
+                utool_str='$MNUTOOL[1,'+utool_no_str+']'
+                -- WRITE file_var('utool_str: ')
+                -- WRITE file_var(utool_str ,CR)
+                GET_VAR(entry, '*SYSTEM*', utool_str, utool, STATUS)
+                SET_VAR(entry,'*SYSTEM*','$GROUP[1].$UTOOL',utool,STATUS)
+                keep_sending::
+                lpos = GET_POS_TPE (open_id , Home_POS, STATUS)
+                -- User frame Data
+                -- Dynamic Current POS Data
+                GET_VAR(entry, '*SYSTEM*', '$SCR_GRP[1].$MCH_POS_X', curr_X, STATUS)
+                GET_VAR(entry, '*SYSTEM*', '$SCR_GRP[1].$MCH_POS_Y', curr_Y, STATUS)
+                GET_VAR(entry, '*SYSTEM*', '$SCR_GRP[1].$MCH_POS_Z', curr_Z, STATUS)
+                GET_VAR(entry, '*SYSTEM*', '$SCR_GRP[1].$MCH_POS_W', curr_W, STATUS)
+                GET_VAR(entry, '*SYSTEM*', '$SCR_GRP[1].$MCH_POS_P', curr_P, STATUS)
+                GET_VAR(entry, '*SYSTEM*', '$SCR_GRP[1].$MCH_POS_R', curr_R, STATUS)
+                CNV_STR_CONF(ROBOT_Config,con,status)
+                Current_POS=POS(curr_X,curr_Y,curr_Z,curr_W,curr_P,curr_R,con)
+
+
+                --POSITION to XYZWPR conversition
+                --POSITION.LOCATION.var does not working
+                -- Having ID must be define error
+                Cam_FRM = camframe
+                User_FRM = uframe
+                Tool_FRM = utool
+
+                --Cam Frame Data
+                DELAY 200
+                WRITE  file_var(
+                    'camera_frame',
+                    Cam_FRM.x::9::3,
+                    Cam_FRM.y::9::3,
+                    Cam_FRM.z::9::3,
+                    Cam_FRM.w::9::3,
+                    Cam_FRM.p::9::3,
+                    Cam_FRM.r::9::3, CR)
+                DELAY 200
+                -- User frame Data
+                WRITE  file_var(
+                    'uframe_Data',
+                    User_FRM.x::9::3,
+                    User_FRM.y::9::3,
+                    User_FRM.z::9::3,
+                    User_FRM.w::9::3,
+                    User_FRM.p::9::3,
+                    User_FRM.r::9::3, CR)
+                DELAY 200
+                -- Tool frame Data
+                WRITE  file_var(
+                    'utool_Data',
+                    Tool_FRM.x::9::3,
+                    Tool_FRM.y::9::3,
+                    Tool_FRM.z::9::3,
+                    Tool_FRM.w::9::3,
+                    Tool_FRM.p::9::3,
+                    Tool_FRM.r::9::3, CR)
+                DELAY 200
+                -- Home POS Data
+                WRITE  file_var(
+                    'Home_POS',
+                    lpos.x::9::3,
+                    lpos.y::9::3,
+                    lpos.z::9::3,
+                    lpos.w::9::3,
+                    lpos.p::9::3,
+                    lpos.r::9::3, CR)
+                DELAY 200
+                -- Current POS Data
+                WRITE  file_var(
+                    'Current_POS',
+                    curr_X::9::3,
+                    curr_Y::9::3,
+                    curr_Z::9::3,
+                    curr_W::9::3,
+                    curr_P::9::3,
+                    curr_R::9::3, CR)
+
+                DELAY 200
+
+                WRITE('[X-TCP13] ',pSTATUS,CR)
+                GET_REG(close_Con, real_flag, int_val, real_val, status)
+                IF  int_val = 1 THEN
+                    SET_INT_REG(close_Con, 0, status)
+                    CLOSE_TPE( open_id, pSTATUS)
+                    WRITE file_var('',CR)
+                    WRITE file_var('[X-TCP14] CLOSE CONN_VAR',CR)
+                    GOTO close_conn
+                ENDIF
+                GOTO keep_sending
+
+            ENDIF
+        ENDIF
+    ENDIF
+    -- if file operation not a success close file and Disconnect server
+    IF fileIO <>  SUCCESS THEN
+        FORCE_SPMENU(TP_PANEL , SPI_TPUSER , 1)
+        WRITE ('[X-TCP14] File operation is not a success...', CR)
+        WRITE ('[X-TCP15] Disconnecting Server.', CR)
+        WRITE ('[X-TCP16] Closing Dismounting File...', CR)
+        close_conn::
+        SET_INT_REG(SM_Flag, 0, STATUS)
+        DISMOUNT_DEV('S3:',STATUS)
+        CLOSE FILE file_var
+        WRITE('[X-TCP] Closed file.', fileIO,CR) --IO_STATUS(dataFile)
+        MSG_DISCO('S3:',STATUS)
+
+    ENDIF
+END z_TCPserver3
