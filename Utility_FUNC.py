@@ -135,6 +135,6 @@ def pub_POS(JSON_Data):
     mqtt.publish('LR-Mate/active-frames/Cam_frame',json.dumps(JSON_Data.get("camera_frame")))
     mqtt.publish('LR-Mate/active-frames/Uframe',json.dumps(JSON_Data.get("uframe_Data")))
     mqtt.publish('LR-Mate/active-frames/Utool',json.dumps(JSON_Data.get("utool_Data")))
-    #positional data d
+    #positional data
     mqtt.publish('LR-Mate/Home-POS',json.dumps(JSON_Data.get("Home_POS")))
     mqtt.publish('LR-Mate/Current_POS',json.dumps(JSON_Data.get("Current_POS")))
