@@ -1,0 +1,87 @@
+PROGRAM z_getRokiPOS
+----------------------------------------------------
+-- Creation date: 2021.11.01
+-- Created by: ME
+----------------------------------------------------
+-- Version: v1
+-- Modified from: HTTP1
+----------------------------------------------------
+-- Function: 
+----------------------------------------------------
+-- Last modified: 2021.11.01
+-- Last modified by: ME                              
+------------
+----------------------------------------
+%NOLOCKGROUP
+%ENVIRONMENT  REGOPE
+--%TPMOTION 
+--%ENVIRONMENT MOTN
+--%ENVIRONMENT MULTI
+%ENVIRONMENT  STRNG
+%COMMENT = 'getPOS_from_zRoki'
+%NOABORT=ERROR+COMMAND
+%NOPAUSE=ERROR+COMMAND+TPENABLE
+%ALPHABETIZE
+%INCLUDE KLEVKEYS
+%INCLUDE KLEVKMSK
+%INCLUDE KLEVCCDF
+%INCLUDE KLIOUOP
+%INCLUDE KLIOTYPS
+
+CONST
+    ROBOT_Config= 'NUT'
+    SUCCESS = 0
+   --REG_NUM = 200
+
+VAR
+    id,XX,YY,ZZ,WW,PP,RR: STRING[10] --request params
+    con: CONFIG
+    x,y,z,w,p,r:  REAL
+    temp_pos: XYZWPR
+    HTTP_res_var : FILE
+    HTTP_Res: STRING[20]
+    status,reg_ID: INTEGER
+----------------------------------------------------
+-- BEGIN MyProgram                             
+----------------------------------------------------
+
+BEGIN
+    -- clear the TPERROR screen
+	--FORCE_SPMENU(TP_PANEL,SPI_TPUSER,1)
+	WRITE(CHR(137),CHR(128))
+	WRITE TPERROR(CHR(128))
+    WRITE('Waiting for HTTP Req...',CR)
+    --set file for HTTP response
+    IF UNINIT(HTTP_Res) THEN
+        HTTP_Res='TD:RESPONSE.HTM'
+        WRITE('[X] INSIDE',CR)
+    ENDIF
+
+    CNV_STR_INT(id,reg_ID)
+	CNV_STR_REAL(XX,x)
+	CNV_STR_REAL(YY,y)
+	CNV_STR_REAL(ZZ,z)
+	CNV_STR_REAL(WW,w)
+	CNV_STR_REAL(PP,p)
+	CNV_STR_REAL(RR,r)
+ 	CNV_STR_CONF(ROBOT_Config,con,status)
+ 	temp_pos = POS(x,y,z,w,p,r,con)
+    WRITE('[X] ',temp_pos,CR)
+
+    IF status =0 THEN
+        WRITE('[X] Openign File...',CR)    
+        OPEN FILE HTTP_res_var ('RW', HTTP_Res) 
+        WRITE HTTP_res_var ('[X] OK',CR)
+        --undating position register
+        SET_POS_REG(reg_ID,temp_pos,status,1)
+        IF status <> SUCCESS THEN
+            --SET_INT_REG(REG_NUM, 1, status)
+            WRITE HTTP_res_var ('[X] PR values updated....',CR)
+        ENDIF
+
+        WRITE HTTP_res_var ('[X] Operation is SUCCESSFULL',CR)
+        WRITE HTTP_res_var ('[X] Closing File...',CR)
+        CLOSE FILE HTTP_res_var 
+    ENDIF
+
+END z_getRokiPOS
