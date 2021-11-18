@@ -3,9 +3,10 @@ from flask import Flask
 from flask_mqtt import Mqtt
 import configurations as CONFIG
 import Utility_FUNC
-app= Flask('__name__')
 
 ##############################MQTT-Settings###########################################
+app= Flask('__name__')
+
 
 app.config['MQTT_CLIENT_ID'] = CONFIG.MQTT_CLIENT_ID
 app.config['MQTT_BROKER_URL'] = CONFIG.z_MSG_URL  # use the free broker from HIVEMQ
@@ -20,7 +21,7 @@ app.config['MQTT_KEEPALIVE'] = CONFIG.Conn_ALIVE  # set the time interval for se
 #app.config['MQTT_REFRESH_TIME'] = CONFIG.MQTT_REFRESH_TIME  # refresh time in seconds
 
 mqtt = Mqtt(app)
-
+counter =0
 
 #MQTT Section
 @mqtt.on_connect()
@@ -34,11 +35,14 @@ def handle_connect(client, userdata, flags, rc):
     :return: N/A
     """
     #is connection SUCCESS?
+    global counter
     if rc==0:
         print("[X-M] connected, OK Returned code=",rc)
         #subscribe to tpoics
-        mqtt.subscribe('LR-Mate/CMD')
-        mqtt.subscribe('LR-Mate/receive-trajectory')
+        counter = counter+1
+        # mqtt.subscribe('LR-Mate/CMD')
+        # mqtt.subscribe('LR-Mate/receive-trajectory')
+        print(counter)
     else:
         print("[X-M] Bad connection Returned code=",rc)
 
@@ -83,7 +87,7 @@ def handle_mqtt_message(client, userdata, message):
 @app.route('/')
 def welcome():
 
-        return ("<h1>welcom</h1>")
+        return ("<h1>welcom from zFANUC-Middleware!</h1>")
 
 
 if __name__ == '__main__':
