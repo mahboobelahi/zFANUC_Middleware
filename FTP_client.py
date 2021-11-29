@@ -1,7 +1,7 @@
 # Anonymous FTP login
 from ftplib import FTP
 from configurations import FTP_ServerIP
-from app import mqtt
+#from app import mqtt
 """
     Currently Image data is directly published on ZDMP service and message bus 
 """

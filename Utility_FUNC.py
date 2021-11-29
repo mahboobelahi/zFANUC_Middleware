@@ -1,6 +1,6 @@
 import requests,threading,json,urllib.parse,time
 from SM_client import connect_socket
-from app import mqtt
+#from app import mqtt
 from FTP_client import download_and_publish_pic
 from configurations import (ROBOT_ID,BASE_TOPIC,
                             ORCHESTRATOR_URL,
